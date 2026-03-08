@@ -66,12 +66,13 @@ spec:
         volumeMounts:
         - name: elasticsearch-storage
           mountPath: /usr/share/elasticsearch/data
+        # request bajo para poder schedulear en nodos de ~5GB; limit evita OOM
         resources:
           requests:
-            memory: "1.5Gi"
+            memory: "768Mi"
             cpu: "250m"
           limits:
-            memory: "2Gi"
+            memory: "1.5Gi"
             cpu: "500m"
         livenessProbe:
           httpGet:

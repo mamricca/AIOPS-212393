@@ -30,12 +30,13 @@ spec:
         env:
         - name: ASPNETCORE_ENVIRONMENT
           value: "Production"
+        # Recursos reducidos para nodos ~5GB (proyecto docente)
         resources:
           requests:
-            memory: "256Mi"
+            memory: "128Mi"
             cpu: "100m"
           limits:
-            memory: "512Mi"
+            memory: "384Mi"
             cpu: "500m"
         startupProbe:
           tcpSocket:

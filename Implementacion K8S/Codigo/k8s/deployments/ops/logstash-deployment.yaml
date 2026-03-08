@@ -7,6 +7,8 @@ metadata:
     note: "Logstash requiere configuración adicional para recolectar logs en K8s. Ver documentación."
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: logstash
@@ -33,7 +35,7 @@ spec:
           name: monitoring
         env:
         - name: LS_JAVA_OPTS
-          value: "-Xmx256m -Xms256m"
+          value: "-Xmx384m -Xms384m"
         volumeMounts:
         - name: logstash-config
           mountPath: /usr/share/logstash/pipeline/logstash.conf
@@ -41,12 +43,13 @@ spec:
         - name: logstash-yml
           mountPath: /usr/share/logstash/config/logstash.yml
           subPath: logstash.yml
+        # Recursos reducidos para nodos ~5GB; limit 512Mi evita OOMKilled
         resources:
           requests:
-            memory: "512Mi"
+            memory: "256Mi"
             cpu: "250m"
           limits:
-            memory: "1Gi"
+            memory: "512Mi"
             cpu: "500m"
         startupProbe:
           tcpSocket:

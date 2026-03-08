@@ -31,13 +31,14 @@ spec:
         env:
         - name: ELASTICSEARCH_HOSTS
           value: "http://elasticsearch:9200"
+        # Recursos reducidos para caber en nodos ~5GB (proyecto docente, no prod)
         resources:
           requests:
+            memory: "1Gi"
+            cpu: "250m"
+          limits:
             memory: "2Gi"
             cpu: "500m"
-          limits:
-            memory: "4Gi"
-            cpu: "1000m"
         startupProbe:
           httpGet:
             path: /api/status
