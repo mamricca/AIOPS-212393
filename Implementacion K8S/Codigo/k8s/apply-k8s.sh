@@ -44,7 +44,6 @@ kubectl apply -f configmaps/otel-collector-config.yaml
 kubectl apply -f configmaps/grafana-provisioning.yaml
 kubectl apply -f configmaps/grafana-dashboards.yaml
 kubectl apply -f configmaps/grafana-dashboard-infra.yaml
-kubectl apply -f configmaps/logstash-config.yaml
 kubectl apply -f configmaps/fluent-bit-config.yaml
 
 echo ""
@@ -131,9 +130,6 @@ kubectl apply -f deployments/ops/grafana-deployment.yaml
 
 kubectl apply -f services/ops/kibana-service.yaml
 kubectl apply -f deployments/ops/kibana-deployment.yaml
-
-kubectl apply -f services/ops/logstash-service.yaml
-kubectl apply -f deployments/ops/logstash-deployment.yaml
 
 # Fluent Bit: recolecta logs de pods y los envía a Elasticsearch (pharmago-logs-*)
 kubectl apply -f deployments/ops/fluent-bit-serviceaccount.yaml

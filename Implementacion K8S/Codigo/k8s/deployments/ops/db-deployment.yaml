@@ -47,8 +47,8 @@ spec:
         env:
         - name: ACCEPT_EULA
           value: "Y"
-        - name: MSSQL_MEMORY_LIMIT_MB
-          value: "2048"
+        - name: MSSQL_PID
+          value: "Express"
         - name: SA_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -74,11 +74,11 @@ spec:
           timeoutSeconds: 5
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "1000m"
+            memory: "768Mi"
+            cpu: "500m"
           limits:
-            memory: "4Gi"
-            cpu: "2000m"
+            memory: "1.5Gi"
+            cpu: "1000m"
       volumes:
       - name: sql-storage
         persistentVolumeClaim:

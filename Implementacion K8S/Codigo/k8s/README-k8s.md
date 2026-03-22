@@ -8,10 +8,10 @@ La aplicación se ejecuta en un único nodo (minikube) con todos los componentes
 
 - **Frontend**: pharmago-ui
 - **Backend**: pharmago-api-gateway, pharmago-users-service, pharmago-pharmacy-service
-- **Base de datos**: pharmago-db (SQL Server)
-- **Telemetría y observabilidad**: otlp-collector, prometheus, grafana, elasticsearch, kibana, logstash
+- **Base de datos**: pharmago-db (SQL Server Express)
+- **Telemetría y observabilidad**: otlp-collector, prometheus, grafana, elasticsearch, kibana, fluent-bit
 
-**Requisito de memoria**: El nodo debe tener al menos 6GB de RAM para soportar Elasticsearch (6Gi), Kibana (2Gi), SQL Server (2Gi) y el resto de servicios.
+**Requisito de memoria**: El nodo debe tener al menos 5-6GB de RAM para soportar Elasticsearch (1.5Gi), Kibana (2Gi), SQL Server Express (1.5Gi) y el resto de servicios.
 
 ## Prerrequisitos
 
@@ -224,7 +224,7 @@ kubectl apply -f deployments/<component>/<deployment>.yaml
 
 ### Pods no se inician (Pending / telemetría)
 
-Si los pods de telemetría (otel-collector, prometheus, grafana, elasticsearch, kibana, logstash) quedan en `Pending`:
+Si los pods de telemetría (otel-collector, prometheus, grafana, elasticsearch, kibana, fluent-bit) quedan en `Pending`:
 
 1. **Falta etiqueta en el nodo**: Los pods requieren `node-type=all`.
    - Usa el script `apply-k8s.sh` que etiqueta automáticamente, o
@@ -390,7 +390,7 @@ kubectl delete -f namespace.yaml
 
 ## Notas Importantes
 
-1. **Logstash**: El deployment de Logstash está configurado pero requiere configuración adicional para recolectar logs en Kubernetes. Actualmente está configurado para recibir logs vía HTTP (puerto 5044). Para producción, considera usar Filebeat o Fluentd como DaemonSet.
+1. **Logs**: Fluent Bit (DaemonSet) recolecta los logs de los pods y los envía directamente a Elasticsearch con índice `pharmago-logs-*`. Kibana se usa para visualizarlos.
 
 2. **PersistentVolumes**: Los PVs usan `hostPath` que es adecuado para desarrollo pero no para producción. En producción, usa storage classes apropiadas.
 
@@ -409,7 +409,7 @@ k8s/
 │   ├── prometheus-config.yaml
 │   ├── otel-collector-config.yaml
 │   ├── grafana-provisioning.yaml
-│   └── logstash-config.yaml
+│   └── fluent-bit-config.yaml
 ├── secrets/
 │   └── db-secret.yaml
 ├── persistent-volumes/
@@ -431,7 +431,7 @@ k8s/
 │       ├── grafana-deployment.yaml
 │       ├── elasticsearch-deployment.yaml
 │       ├── kibana-deployment.yaml
-│       └── logstash-deployment.yaml
+│       └── fluent-bit-daemonset.yaml
 ├── services/
 │   ├── frontend/
 │   │   └── ui-service.yaml
@@ -445,8 +445,7 @@ k8s/
 │       ├── prometheus-service.yaml
 │       ├── grafana-service.yaml
 │       ├── elasticsearch-service.yaml
-│       ├── kibana-service.yaml
-│       └── logstash-service.yaml
+│       └── kibana-service.yaml
 ├── build-images.sh
 ├── apply-k8s.sh
 ├── cleanup.sh

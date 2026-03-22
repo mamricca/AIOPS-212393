@@ -48,7 +48,7 @@ kubectl apply -f configmaps\otel-collector-config.yaml
 kubectl apply -f configmaps\grafana-provisioning.yaml
 kubectl apply -f configmaps\grafana-dashboards.yaml
 kubectl apply -f configmaps\grafana-dashboard-infra.yaml
-kubectl apply -f configmaps\logstash-config.yaml
+kubectl apply -f configmaps\fluent-bit-config.yaml
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host "`n5. Creando StorageClass y PersistentVolumes..." -ForegroundColor Yellow
@@ -131,9 +131,6 @@ kubectl apply -f deployments\ops\grafana-deployment.yaml
 
 kubectl apply -f services\ops\kibana-service.yaml
 kubectl apply -f deployments\ops\kibana-deployment.yaml
-
-kubectl apply -f services\ops\logstash-service.yaml
-kubectl apply -f deployments\ops\logstash-deployment.yaml
 
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
