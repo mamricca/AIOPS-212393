@@ -6,6 +6,7 @@ services:
     container_name: pharmago-db
     environment:
       - ACCEPT_EULA=Y
+      - MSSQL_PID=Express
       - SA_PASSWORD=Str0ngP@ssword!
     ports:
       - "11433:1433"

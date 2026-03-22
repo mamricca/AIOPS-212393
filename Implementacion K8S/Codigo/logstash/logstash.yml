@@ -1,4 +1,0 @@
-# Configuración de Logstash para reducir logging
-http.host: "0.0.0.0"
-xpack.monitoring.enabled: false
-log.level: error
