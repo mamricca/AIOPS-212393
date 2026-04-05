@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PharmaGo.UsersService.BusinessLogic;
@@ -41,14 +42,16 @@ namespace PharmaGo.UsersService.Factory
             serviceCollection.AddScoped<IRepository<Pharmacy>, PharmacyRepository>();
 
             serviceCollection.AddDbContext<DbContext, PharmacyGoDbContext>(options =>
+            {
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),
-                sqlOptions =>
+                    sqlOptions => { sqlOptions.MigrationsAssembly("PharmaGo.DataAccess"); });
+                options.ConfigureWarnings(w =>
                 {
-                    sqlOptions.MigrationsAssembly("PharmaGo.DataAccess");
-                }
-                )
-            );
+                    w.Ignore(RelationalEventId.CommandExecuted);
+                    w.Ignore(RelationalEventId.CommandError);
+                });
+            });
             serviceCollection.AddSingleton<ICustomMetrics, CustomMetrics>();
             serviceCollection.AddSingleton<IStructuredLogger, StructuredLogger>();
         }

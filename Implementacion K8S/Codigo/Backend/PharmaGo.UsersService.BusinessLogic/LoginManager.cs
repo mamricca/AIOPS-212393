@@ -36,9 +36,9 @@ namespace PharmaGo.UsersService.BusinessLogic
                 Session newSession = new Session { Token = token, UserId = _userId };
                 _sessionRepository.InsertOne(newSession);
                 _sessionRepository.Save();
-                return new Authorization { Token = token, Role = user.Role.Name, UserName = user.UserName };
+                return new Authorization { Token = token, Role = user.Role.Name, UserName = user.UserName, UserId = user.Id };
             }
-            return new Authorization { Token = session.Token, Role = user.Role.Name, UserName = user.UserName };
+            return new Authorization { Token = session.Token, Role = user.Role.Name, UserName = user.UserName, UserId = user.Id };
         }
 
         public bool IsTokenValid(string token)

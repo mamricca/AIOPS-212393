@@ -1,9 +1,13 @@
 using PharmaGo.Factory;
 using PharmaGo.WebApi.Filters;
 using System.Diagnostics.CodeAnalysis;
+using Instrumentation;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.SuppressEfAndSqlClientLogs();
+
+builder.Services.AddHttpContextAccessor();
 // Add services to the container.
 builder.Services.RegisterBusinessLogicServices(builder.Configuration);
 builder.Services.RegisterDataAccessServices(builder.Configuration);

@@ -2,6 +2,9 @@
 # Ejecuta todos los port-forwards en background (mismos puertos que docker-compose)
 # Uso: ./port-forward.sh
 # Para detener: ./port-forward.sh --stop
+#
+# Si 9200 está ocupado (otro kubectl, Docker ES, etc.): ES_LOCAL_PORT=19200 ./port-forward.sh
+# Luego Elasticsearch queda en http://127.0.0.1:19200
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PID_FILE="$SCRIPT_DIR/.port-forward.pids"
@@ -67,10 +70,11 @@ kubectl port-forward svc/kibana 5601:5601 -n pharmago &
 echo $! >> "$PID_FILE"
 echo "  Kibana:       http://127.0.0.1:5601"
 
-# Elasticsearch (para verificar índices: curl http://127.0.0.1:9200/_cat/indices?v)
-kubectl port-forward svc/elasticsearch 9200:9200 -n pharmago &
+# Elasticsearch (puerto local configurable; en el cluster sigue siendo 9200)
+ES_LOCAL_PORT="${ES_LOCAL_PORT:-9200}"
+kubectl port-forward svc/elasticsearch "${ES_LOCAL_PORT}:9200" -n pharmago &
 echo $! >> "$PID_FILE"
-echo "  Elasticsearch: http://127.0.0.1:9200"
+echo "  Elasticsearch: http://127.0.0.1:${ES_LOCAL_PORT}"
 
 echo ""
 echo "Port-forwards activos. Para detener: ./port-forward.sh --stop"

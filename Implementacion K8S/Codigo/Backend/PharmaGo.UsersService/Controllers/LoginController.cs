@@ -31,29 +31,32 @@ namespace PharmaGo.UsersService.Controllers
                 var authorization = _loginManager.Login(userModel.UserName, userModel.Password);
                 
                 _structuredLogger.LogInformation(
-                    $"User {authorization.UserName} logged in successfully",
+                    "Login succeeded",
                     new Dictionary<string, object>
                     {
-                        ["status"] = "success",
-                        ["message"] = $"User {authorization.UserName} logged in successfully",
-                        ["user_name"] = authorization.UserName
-                    }
-                );
+                        ["pharma_biz"] = "login_success",
+                        ["component"] = "LoginController",
+                        ["operation"] = "login",
+                        ["outcome"] = "success",
+                        ["user_name"] = authorization.UserName,
+                        ["user_id"] = authorization.UserId
+                    });
                 
                 return Ok(new LoginModelResponse() { token = authorization.Token, role = authorization.Role, userName = authorization.UserName });
             }
             catch (Exception ex)
             {
                 _structuredLogger.LogWarning(
-                    $"User {userModel.UserName} failed log in",
+                    "Login failed",
                     ex,
                     new Dictionary<string, object>
                     {
-                        ["status"] = "failed",
-                        ["message"] = $"User {userModel.UserName} failed log in",
+                        ["pharma_biz"] = "login_fail",
+                        ["component"] = "LoginController",
+                        ["operation"] = "login",
+                        ["outcome"] = "failed",
                         ["user_name"] = userModel.UserName ?? "unknown"
-                    }
-                );
+                    });
                 
                 throw;
             }

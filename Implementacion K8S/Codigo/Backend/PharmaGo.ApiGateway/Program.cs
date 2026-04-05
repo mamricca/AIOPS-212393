@@ -5,6 +5,7 @@ using AspNetCoreRateLimit;
 using PharmaGo.ApiGateway.Middleware;
 using Instrumentation;
 using InstrumentationInterface;
+using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +23,21 @@ if (rateLimitMode.Equals("IP", StringComparison.OrdinalIgnoreCase))
 }
 
 builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+    .AddTransforms(transformBuilder =>
+    {
+        transformBuilder.AddRequestTransform(context =>
+        {
+            if (context.HttpContext.Items.TryGetValue(CorrelationIdMiddlewareExtensions.HttpContextItemKey, out var value)
+                && value is string correlationId
+                && !string.IsNullOrEmpty(correlationId))
+            {
+                context.ProxyRequest.Headers.Remove("X-Correlation-ID");
+                context.ProxyRequest.Headers.TryAddWithoutValidation("X-Correlation-ID", correlationId);
+            }
+            return default;
+        });
+    });
 
 builder.Services.AddSingleton<ICustomMetrics, CustomMetrics>();
 
@@ -54,6 +69,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors("MyAllowedOrigins");
+app.UseGatewayCorrelationId();
 
 if (app.Environment.IsDevelopment())
 {

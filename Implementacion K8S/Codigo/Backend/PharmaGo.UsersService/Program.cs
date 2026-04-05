@@ -5,6 +5,9 @@ using Instrumentation;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.SuppressEfAndSqlClientLogs();
+
+builder.Services.AddHttpContextAccessor();
 builder.Services.RegisterBusinessLogicServices(builder.Configuration);
 builder.Services.RegisterDataAccessServices(builder.Configuration);
 builder.Services.AddControllers(options => options.Filters.Add(typeof(ExceptionFilter)));
@@ -39,6 +42,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("MyAllowedOrigins");
+app.UseServiceCorrelationScope();
 
 app.UseAuthorization();
 

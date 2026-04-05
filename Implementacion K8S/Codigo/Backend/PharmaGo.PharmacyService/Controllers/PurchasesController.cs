@@ -1,3 +1,4 @@
+using InstrumentationInterface;
 using Microsoft.AspNetCore.Mvc;
 using PharmaGo.PharmacyService.IBusinessLogic;
 using PharmaGo.PharmacyService.Converters;
@@ -13,10 +14,12 @@ namespace PharmaGo.PharmacyService.Controllers
     public class PurchasesController : ControllerBase
     {
         private readonly IPurchasesManager _purchasesManager;
+        private readonly IStructuredLogger _structuredLogger;
 
-        public PurchasesController(IPurchasesManager manager)
+        public PurchasesController(IPurchasesManager manager, IStructuredLogger structuredLogger)
         {
             _purchasesManager = manager;
+            _structuredLogger = structuredLogger;
         }
 
         [HttpGet]
@@ -64,10 +67,40 @@ namespace PharmaGo.PharmacyService.Controllers
         [HttpPost]
         public IActionResult CreatePurchase([FromBody] PurchaseModelRequest purchaseModel)
         {
-            var converter = new PurchaseModelRequestToPurchaseConverter();
-            var purchase = _purchasesManager.CreatePurchase(converter.Convert(purchaseModel));
-            var purchaseModelResponse = new PurchaseModelResponse(purchase);
-            return Ok(purchaseModelResponse);
+            try
+            {
+                var converter = new PurchaseModelRequestToPurchaseConverter();
+                var purchase = _purchasesManager.CreatePurchase(converter.Convert(purchaseModel));
+                _structuredLogger.LogInformation(
+                    "Purchase created",
+                    new Dictionary<string, object>
+                    {
+                        ["pharma_biz"] = "purchase_create",
+                        ["component"] = "PurchasesController",
+                        ["operation"] = "create_purchase",
+                        ["outcome"] = "success",
+                        ["order_id"] = purchase.Id,
+                        ["tracking_code"] = purchase.TrackingCode,
+                        ["buyer_email"] = purchase.BuyerEmail
+                    });
+                var purchaseModelResponse = new PurchaseModelResponse(purchase);
+                return Ok(purchaseModelResponse);
+            }
+            catch (Exception ex)
+            {
+                _structuredLogger.LogWarning(
+                    "Purchase creation failed",
+                    ex,
+                    new Dictionary<string, object>
+                    {
+                        ["pharma_biz"] = "purchase_create_fail",
+                        ["component"] = "PurchasesController",
+                        ["operation"] = "create_purchase",
+                        ["outcome"] = "failed",
+                        ["buyer_email"] = purchaseModel?.BuyerEmail ?? ""
+                    });
+                throw;
+            }
         }
 
         [HttpGet]
