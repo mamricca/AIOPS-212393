@@ -12,15 +12,17 @@ echo "=== Chaos: trigger CPU p95 alert (${SECS}s) ==="
 echo "Lanzando CPU spike en todos los pods backend..."
 
 for DEPLOY in $SERVICES; do
-  # Con replicas=2 elegimos el primer pod de cada deployment
-  POD=$(kubectl get pod -n "$NS" -l app="$DEPLOY" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-  if [ -z "$POD" ]; then
-    echo "  Skip: no se encontro pod para $DEPLOY"
+  # Atacar TODOS los pods del deployment (ambas replicas)
+  PODS=$(kubectl get pod -n "$NS" -l app="$DEPLOY" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+  if [ -z "$PODS" ]; then
+    echo "  Skip: no se encontraron pods para $DEPLOY"
     continue
   fi
-  echo "  Spike en: $POD"
-  kubectl exec -n "$NS" "$POD" -- sh -c \
-    "(while :;do :;done)& (while :;do :;done)& (while :;do :;done)& (while :;do :;done)& sleep $SECS" &
+  for POD in $PODS; do
+    echo "  Spike en: $POD"
+    kubectl exec -n "$NS" "$POD" -- sh -c \
+      "(while :;do :;done)& (while :;do :;done)& (while :;do :;done)& (while :;do :;done)& sleep $SECS" &
+  done
 done
 
 echo ""
