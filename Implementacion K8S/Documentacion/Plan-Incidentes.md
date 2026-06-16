@@ -277,17 +277,45 @@ Cada runbook operativo debe contener enlaces y referencias a runbooks técnicos 
 Además, incluir una sección de "Lecciones aprendidas" en cada runbook para documentar mejoras surgidas tras su ejecución.
 
 ## 11. Catálogo de Runbooks
-### 11.1 Alto Consumo de CPU
-### 11.2 Memory Leak
-### 11.3 Servicio No Disponible
-### 11.4 Falla de Base de Datos
-### 11.5 Degradación de Red
-### 11.6 Despliegue Fallido
-### 11.7 Ejecución de Rollback
-### 11.8 Saturación de Recursos
-### 11.9 Falla de Observabilidad
-### 11.10 Recuperación de Pods
 
+Los runbooks técnicos detallados se encuentran en `Documentacion/runbooks/`. Cada uno sigue la estructura estándar definida en la Sección 10.2.
+
+| ID | Título | Alerta de activación | Severidad estimada | Archivo |
+|---|---|---|---|---|
+| RB-01 | Alto Error Rate 5xx | `[PharmaGo] High 5xx Error Rate` | Sev1 / Sev2 | [runbooks/RB-01-high-5xx-error-rate.md](runbooks/RB-01-high-5xx-error-rate.md) |
+| RB-02 | Alto Consumo CPU p95 | `[PharmaGo] High CPU p95` | Sev2 / Sev3 | [runbooks/RB-02-high-cpu-p95.md](runbooks/RB-02-high-cpu-p95.md) |
+
+### 11.1 RB-01 — Alto Error Rate 5xx
+
+**Activación:** alerta Grafana `[PharmaGo] High 5xx Error Rate` — `rate(pharmago_http_errors_total[5m]) > 0.1` durante ≥ 1 minuto.
+
+**Flujo de respuesta resumido:**
+1. Validar alerta en Grafana + Kibana (`outcome: failed`, `correlation_id`).
+2. Revisar estado de pods: `kubectl get pods -n pharmago`.
+3. Si DB caída: `kubectl rollout restart deployment/pharmago-db -n pharmago` y reiniciar servicios dependientes.
+4. Si regresión de deploy: `kubectl rollout undo deployment/<nombre> -n pharmago`.
+5. Si sobrecarga: escalar a 3 réplicas con `kubectl scale`.
+6. Verificar: error rate < 0.05 req/s, alerta en `Normal`.
+
+Runbook completo → [runbooks/RB-01-high-5xx-error-rate.md](runbooks/RB-01-high-5xx-error-rate.md)
+
+Script de simulación → `Codigo/chaos-engineering/trigger-5xx-alert.sh`
+
+### 11.2 RB-02 — Alto Consumo CPU p95
+
+**Activación:** alerta Grafana `[PharmaGo] High CPU p95` — percentil 95 de CPU en pods pharmago > 40% de 1 core durante ≥ 1 minuto.
+
+**Flujo de respuesta resumido:**
+1. Identificar pod afectado: `kubectl top pods -n pharmago --sort-by=cpu`.
+2. Descartar proceso de chaos o loop: `kubectl exec -n pharmago <POD> -- ps aux`.
+3. Si proceso descontrolado: `kubectl delete pod -n pharmago <POD>` (K8s lo recrea automáticamente).
+4. Si carga legítima: escalar a 3 réplicas con `kubectl scale`.
+5. Si regresión de deploy: `kubectl rollout undo`.
+6. Verificar: CPU p95 < 40%, alerta en `Normal`.
+
+Runbook completo → [runbooks/RB-02-high-cpu-p95.md](runbooks/RB-02-high-cpu-p95.md)
+
+Script de simulación → `Codigo/chaos-engineering/trigger-cpu-p95-alert.sh`
 
 ## 12. Proceso de Postmortem
 

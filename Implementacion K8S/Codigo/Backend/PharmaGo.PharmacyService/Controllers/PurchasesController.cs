@@ -22,6 +22,10 @@ namespace PharmaGo.PharmacyService.Controllers
             _structuredLogger = structuredLogger;
         }
 
+        private string CorrelationId =>
+            HttpContext.Request.Headers["X-Correlation-ID"].FirstOrDefault()?.Trim()
+            ?? HttpContext.TraceIdentifier;
+
         [HttpGet]
         [AuthorizationFilter(new string[] { nameof(RoleType.Employee) })]
         public IActionResult All()
@@ -81,7 +85,8 @@ namespace PharmaGo.PharmacyService.Controllers
                         ["outcome"] = "success",
                         ["order_id"] = purchase.Id,
                         ["tracking_code"] = purchase.TrackingCode,
-                        ["buyer_email"] = purchase.BuyerEmail
+                        ["buyer_email"] = purchase.BuyerEmail,
+                        ["correlation_id"] = CorrelationId
                     });
                 var purchaseModelResponse = new PurchaseModelResponse(purchase);
                 return Ok(purchaseModelResponse);
@@ -97,7 +102,8 @@ namespace PharmaGo.PharmacyService.Controllers
                         ["component"] = "PurchasesController",
                         ["operation"] = "create_purchase",
                         ["outcome"] = "failed",
-                        ["buyer_email"] = purchaseModel?.BuyerEmail ?? ""
+                        ["buyer_email"] = purchaseModel?.BuyerEmail ?? "",
+                        ["correlation_id"] = CorrelationId
                     });
                 throw;
             }
