@@ -21,15 +21,19 @@ namespace PharmaGo.UsersService.Controllers
             _structuredLogger = structuredLogger;
        }
 
+        private string CorrelationId =>
+            HttpContext.Request.Headers["X-Correlation-ID"].FirstOrDefault()?.Trim()
+            ?? HttpContext.TraceIdentifier;
+
         [HttpPost]
         public IActionResult Login([FromBody] LoginModelRequest userModel)
         {
             _customMetrics.LoginInvocations();
-            
+
             try
             {
                 var authorization = _loginManager.Login(userModel.UserName, userModel.Password);
-                
+
                 _structuredLogger.LogInformation(
                     "Login succeeded",
                     new Dictionary<string, object>
@@ -39,9 +43,10 @@ namespace PharmaGo.UsersService.Controllers
                         ["operation"] = "login",
                         ["outcome"] = "success",
                         ["user_name"] = authorization.UserName,
-                        ["user_id"] = authorization.UserId
+                        ["user_id"] = authorization.UserId,
+                        ["correlation_id"] = CorrelationId
                     });
-                
+
                 return Ok(new LoginModelResponse() { token = authorization.Token, role = authorization.Role, userName = authorization.UserName });
             }
             catch (Exception ex)
@@ -55,9 +60,10 @@ namespace PharmaGo.UsersService.Controllers
                         ["component"] = "LoginController",
                         ["operation"] = "login",
                         ["outcome"] = "failed",
-                        ["user_name"] = userModel.UserName ?? "unknown"
+                        ["user_name"] = userModel.UserName ?? "unknown",
+                        ["correlation_id"] = CorrelationId
                     });
-                
+
                 throw;
             }
         }

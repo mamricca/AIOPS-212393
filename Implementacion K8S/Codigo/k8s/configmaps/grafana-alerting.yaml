@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alerting-rules
+  namespace: pharmago
+data:
+  pharmago-alerts.yaml: |
+    apiVersion: 1
+    groups:
+      - orgId: 1
+        name: pharmago-alerts
+        folder: PharmaGo
+        interval: 1m
+        rules:
+          - uid: pharmago-high-5xx
+            title: "[PharmaGo] High 5xx Error Rate"
+            condition: B
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: prometheus
+                model:
+                  datasource:
+                    type: prometheus
+                    uid: prometheus
+                  expr: "rate(pharmago_http_errors_total[5m])"
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  refId: A
+              - refId: B
+                datasourceUid: "__expr__"
+                model:
+                  conditions:
+                    - evaluator:
+                        params:
+                          - 0.1
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                          - A
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                  datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                  expression: A
+                  refId: B
+                  type: threshold
+            noDataState: NoData
+            execErrState: Alerting
+            for: 1m
+            annotations:
+              summary: "High 5xx error rate — activate RB-01"
+              description: "pharmago_http_errors_total rate > 0.1 req/s for 1 min. Check logs in Kibana and activate runbook RB-01."
+            labels:
+              severity: critical
+              runbook: RB-01
+
+          - uid: pharmago-high-cpu-p95
+            title: "[PharmaGo] High CPU p95"
+            condition: B
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: prometheus
+                model:
+                  datasource:
+                    type: prometheus
+                    uid: prometheus
+                  expr: "quantile(0.95, sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"pharmago\",container!=\"\"}[5m]))) * 100"
+                  instant: true
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  refId: A
+              - refId: B
+                datasourceUid: "__expr__"
+                model:
+                  conditions:
+                    - evaluator:
+                        params:
+                          - 40
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                          - A
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                  datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                  expression: A
+                  refId: B
+                  type: threshold
+            noDataState: NoData
+            execErrState: Alerting
+            for: 1m
+            annotations:
+              summary: "High CPU p95 across pharmago pods — activate RB-02"
+              description: "95th percentile pod CPU > 40% of 1 core for 1 min. Activate runbook RB-02."
+            labels:
+              severity: warning
+              runbook: RB-02
