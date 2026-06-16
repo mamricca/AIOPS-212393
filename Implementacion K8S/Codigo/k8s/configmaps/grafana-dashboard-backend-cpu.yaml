@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-backend-cpu
+  namespace: pharmago
+  labels:
+    grafana_dashboard: "1"
+data:
+  pharmago-backend-cpu.json: |
+    {"title":"PharmaGo - CPU Backend","uid":"pharmago-backend-cpu","tags":["pharmago","backend"],"time":{"from":"now-15m","to":"now"},"panels":[{"id":1,"title":"CPU backend activo por pod","type":"timeseries","gridPos":{"x":0,"y":0,"w":24,"h":10},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"(sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"pharmago\", pod=~\"pharmago-(api-gateway|users-service|pharmacy-service).*\"}[1m])) * 100) and on(pod) (time() - container_last_seen{namespace=\"pharmago\"} < 60)","legendFormat":"{{pod}}","refId":"A"}],"fieldConfig":{"defaults":{"unit":"percent","min":0,"max":100},"overrides":[]},"options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom","showLegend":true}}},{"id":2,"title":"CPU avg api-gateway (alerta RB-02)","type":"timeseries","gridPos":{"x":0,"y":10,"w":24,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"avg(sum by(pod) (rate(container_cpu_usage_seconds_total{namespace=\"pharmago\", pod=~\"pharmago-api-gateway.*\"}[1m])) * 100)","legendFormat":"avg api-gateway","refId":"A"},{"expr":"vector(40)","legendFormat":"Umbral alerta (40%)","refId":"B"}],"fieldConfig":{"defaults":{"unit":"percent","min":0,"max":100},"overrides":[{"matcher":{"id":"byName","options":"Umbral alerta (40%)"},"properties":[{"id":"color","value":{"mode":"fixed","fixedColor":"red"}},{"id":"custom.lineStyle","value":{"dash":[10,10],"fill":"dash"}}]}]},"options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"bottom","showLegend":true}}}],"schemaVersion":38,"version":1}

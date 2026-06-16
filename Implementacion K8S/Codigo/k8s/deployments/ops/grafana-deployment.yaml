@@ -67,6 +67,12 @@ spec:
         - name: grafana-dashboard-infra
           mountPath: /etc/grafana/provisioning/dashboards/pharmago-infra.json
           subPath: pharmago-infra.json
+        - name: grafana-dashboard-backend-cpu
+          mountPath: /etc/grafana/provisioning/dashboards/pharmago-backend-cpu.json
+          subPath: pharmago-backend-cpu.json
+        - name: grafana-dashboard-rb01
+          mountPath: /etc/grafana/provisioning/dashboards/pharmago-rb01.json
+          subPath: pharmago-rb01.json
         - name: grafana-alerting-rules
           mountPath: /etc/grafana/provisioning/alerting/pharmago-alerts.yaml
           subPath: pharmago-alerts.yaml
@@ -111,6 +117,12 @@ spec:
       - name: grafana-dashboard-infra
         configMap:
           name: grafana-dashboard-infra
+      - name: grafana-dashboard-backend-cpu
+        configMap:
+          name: grafana-dashboard-backend-cpu
+      - name: grafana-dashboard-rb01
+        configMap:
+          name: grafana-dashboard-rb01
       - name: grafana-alerting-rules
         configMap:
           name: grafana-alerting-rules

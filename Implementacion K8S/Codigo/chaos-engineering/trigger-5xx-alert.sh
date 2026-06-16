@@ -6,7 +6,7 @@
 
 DURATION="${1:-90}"
 URL="${2:-http://127.0.0.1:5000/api/login}"
-BATCH=30       # requests por oleada (evita fork bomb en Windows)
+BATCH=4        # requests por oleada (bajo el rate limit de 100 req/min por usuario)
 INTERVAL=3     # segundos entre oleadas
 NS="pharmago"
 
