@@ -86,17 +86,17 @@ Esperado: todos `Running` con `RESTARTS` bajos (idealmente 0).
 ### 2.2 Error rate en 0
 
 ```powershell
-curl.exe -s "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))" `
-  | python -c "import sys,json; d=json.load(sys.stdin); r=d['data']['result']; print('Error rate:', float(r[0]['value'][1]) if r else 0)"
+$r = (Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data.result
+"Error rate: $(if ($r) { [double]$r[0].value[1] } else { 0 })"
 ```
 
-Esperado: `0.0` o sin datos.
+Esperado: `0` o sin datos.
 
 ### 2.3 CPU en baseline
 
 ```powershell
-curl.exe -s 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)' `
-  | python -c "import sys,json; d=json.load(sys.stdin); r=d['data']['result']; print('CPU avg api-gateway:', round(float(r[0]['value'][1]),1), '%' if r else 'sin datos')"
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
+if ($r) { "CPU avg api-gateway: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
 ```
 
 Esperado: < 15%.
@@ -152,8 +152,8 @@ En Grafana → Alerting → Alert Rules → `[PharmaGo] High 5xx Error Rate` →
 
 Verificar por CLI:
 ```powershell
-curl.exe -s "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))" `
-  | python -c "import sys,json; d=json.load(sys.stdin); r=d['data']['result']; print('Error rate:', round(float(r[0]['value'][1]),4), 'req/s')"
+$r = (Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data.result
+"Error rate: $(if ($r) { [math]::Round([double]$r[0].value[1], 4) } else { 0 }) req/s"
 ```
 
 Esperado: > 0.1 req/s.
@@ -223,19 +223,20 @@ kubectl rollout status deployment/pharmago-db -n pharmago --timeout=120s
 # Confirmar DB Ready
 kubectl get pod -n pharmago -l app=pharmago-db
 
-# Test manual de login
-curl.exe -s -o NUL -w "HTTP %{http_code}`n" `
-  -X POST http://127.0.0.1:5000/api/login `
-  -H "Content-Type: application/json" `
-  -d '{\"userName\":\"test\",\"password\":\"test\"}'
+# Test manual de login (esperar HTTP 400, no 500)
+try {
+  $res = Invoke-WebRequest -Uri "http://127.0.0.1:5000/api/login" -Method POST `
+    -ContentType "application/json" -Body '{"userName":"test","password":"test"}' -UseBasicParsing
+  "HTTP $($res.StatusCode)"
+} catch { "HTTP $($_.Exception.Response.StatusCode.value__)" }
 ```
 
 Esperado: HTTP 400 (credenciales incorrectas, pero el servicio responde — no es 500).
 
 ```powershell
 # Confirmar error rate volvió a 0
-curl.exe -s "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))" `
-  | python -c "import sys,json; d=json.load(sys.stdin); r=d['data']['result']; print('Error rate:', round(float(r[0]['value'][1]),4) if r else 0)"
+$r = (Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data.result
+"Error rate: $(if ($r) { [math]::Round([double]$r[0].value[1], 4) } else { 0 })"
 ```
 
 Esperado: ~0.
@@ -264,8 +265,8 @@ Señalar que el CPU está en baseline (< 15%) en ambos pods del api-gateway.
 ### 4.2 Verificar baseline antes de arrancar
 
 ```powershell
-curl.exe -s 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)' `
-  | python -c "import sys,json; d=json.load(sys.stdin); r=d['data']['result']; print('CPU avg:', round(float(r[0]['value'][1]),1), '%')"
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
+if ($r) { "CPU avg: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
 ```
 
 Esperado: < 15%. Si está en 50%, hay procesos huérfanos — reiniciar los pods:
@@ -292,8 +293,9 @@ bash trigger-cpu-p95-alert.sh
 Mientras espera, mostrar en Grafana el panel **"CPU avg api-gateway"** subiendo y cruzando la línea roja (40%).
 
 ```powershell
-curl.exe -s 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)' `
-  | python -c "import sys,json; d=json.load(sys.stdin); r=d['data']['result']; v=float(r[0]['value'][1]) if r else 0; print('CPU avg:', round(v,1), '%  -> FIRING' if v>40 else '%  -> esperando')"
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
+$v = if ($r) { [double]$r[0].value[1] } else { 0 }
+"CPU avg: $([math]::Round($v,1)) % -> $(if ($v -gt 40) { 'FIRING' } else { 'esperando' })"
 ```
 
 En Grafana → Alerting → `[PharmaGo] High CPU p95` → **Firing**.
@@ -306,8 +308,8 @@ En Grafana → Alerting → `[PharmaGo] High CPU p95` → **Firing**.
 # Ver CPU por pod
 kubectl top pods -n pharmago --sort-by=cpu 2>$null
 # Si no funciona, usar Prometheus directamente:
-curl.exe -s 'http://127.0.0.1:9090/api/v1/query?query=sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100' `
-  | python -c "import sys,json; d=json.load(sys.stdin); [print(r['metric']['pod'], '->', round(float(r['value'][1]),1), '%') for r in d['data']['result']]"
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100').data.result
+$r | ForEach-Object { "$($_.metric.pod) -> $([math]::Round([double]$_.value[1], 1)) %" }
 ```
 
 **Qué decir:** "Ambos pods del api-gateway están al 50% de CPU — en el límite de su resource limit de 500m. El promedio supera el umbral del 40%."
@@ -332,8 +334,8 @@ Esperado: 3 pods, el nuevo en `0/1 → 1/1 Running`.
 ### 4.7 Confirmar recuperación de la alerta
 
 ```powershell
-curl.exe -s 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)' `
-  | python -c "import sys,json; d=json.load(sys.stdin); r=d['data']['result']; print('CPU avg:', round(float(r[0]['value'][1]),1), '%')"
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
+if ($r) { "CPU avg: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
 ```
 
 Esperado: ~33-35% (bajo el umbral de 40%).
@@ -349,8 +351,8 @@ En Grafana → alerta pasa a **Normal**.
 Cuando el script de chaos termina (300s), los busy-loops se matan automáticamente:
 
 ```powershell
-curl.exe -s 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)' `
-  | python -c "import sys,json; d=json.load(sys.stdin); r=d['data']['result']; print('CPU avg post-chaos:', round(float(r[0]['value'][1]),1), '%')"
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
+if ($r) { "CPU avg post-chaos: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
 ```
 
 Esperado: < 5% en los 3 pods.
@@ -375,10 +377,10 @@ kubectl get pods -n pharmago
 ### El alert no pasa a Firing
 ```powershell
 # Verificar que la regla existe en Grafana
-curl.exe -s "http://admin:admin@127.0.0.1:3000/api/ruler/grafana/api/v1/rules/PharmaGo" | python -m json.tool | Select-Object -First 30
+Invoke-RestMethod "http://admin:admin@127.0.0.1:3000/api/ruler/grafana/api/v1/rules/PharmaGo" | ConvertTo-Json -Depth 5 | Select-String "." | Select-Object -First 30
 
 # Verificar que la query devuelve datos en Prometheus
-curl.exe -s "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))"
+(Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data
 ```
 
 ### El port-forward del API gateway cayó (HTTP 000)
@@ -425,9 +427,11 @@ kubectl apply -f configmaps\grafana-dashboard-backend-cpu.yaml
 ```
 2. Hacer un request manual y ver el código:
 ```powershell
-curl.exe -v -X POST http://127.0.0.1:5000/api/login `
-  -H "Content-Type: application/json" `
-  -d '{\"userName\":\"test\",\"password\":\"test\"}' 2>&1 | Select-String "< HTTP"
+try {
+  $res = Invoke-WebRequest -Uri "http://127.0.0.1:5000/api/login" -Method POST `
+    -ContentType "application/json" -Body '{"userName":"test","password":"test"}' -UseBasicParsing
+  "HTTP $($res.StatusCode)"
+} catch { "HTTP $($_.Exception.Response.StatusCode.value__)" }
 ```
 3. Si devuelve 429 (rate limit), esperar 60s y volver a correr el script.
 
