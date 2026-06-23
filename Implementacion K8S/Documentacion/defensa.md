@@ -135,7 +135,7 @@ Señalar que la tasa de errores es 0 y el pod DB está saludable.
 
 ```powershell
 cd "Implementacion K8S\Codigo\chaos-engineering"
-bash trigger-5xx-alert.sh
+& "C:\Program Files\Git\bin\bash.exe" trigger-5xx-alert.sh
 ```
 
 > El script elimina el pod de DB repetidamente y envía requests al gateway (4 req cada 3s, bajo el rate limit). Los servicios no pueden conectar a la DB → errores 5xx.
@@ -276,7 +276,7 @@ kubectl rollout status deployment/pharmago-api-gateway -n pharmago --timeout=90s
 
 ```powershell
 cd "Implementacion K8S\Codigo\chaos-engineering"
-bash trigger-cpu-p95-alert.sh
+& "C:\Program Files\Git\bin\bash.exe" trigger-cpu-p95-alert.sh
 ```
 
 > El script inyecta 4 busy-loops dentro de cada pod de api-gateway durante 300 segundos. El CPU de cada pod sube hasta el límite de 500m (50% de un core).
