@@ -86,8 +86,7 @@ Esperado: todos `Running` con `RESTARTS` bajos (idealmente 0).
 ### 2.2 Error rate en 0
 
 ```powershell
-$r = (Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data.result
-"Error rate: $(if ($r) { [double]$r[0].value[1] } else { 0 })"
+$r = (Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data.result; "Error rate: $(if ($r) { [double]$r[0].value[1] } else { 0 })"
 ```
 
 Esperado: `0` o sin datos.
@@ -95,8 +94,7 @@ Esperado: `0` o sin datos.
 ### 2.3 CPU en baseline
 
 ```powershell
-$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
-if ($r) { "CPU avg api-gateway: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result; if ($r) { "CPU avg api-gateway: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
 ```
 
 Esperado: < 15%.
@@ -152,8 +150,7 @@ En Grafana → Alerting → Alert Rules → `[PharmaGo] High 5xx Error Rate` →
 
 Verificar por CLI:
 ```powershell
-$r = (Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data.result
-"Error rate: $(if ($r) { [math]::Round([double]$r[0].value[1], 4) } else { 0 }) req/s"
+$r = (Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data.result; "Error rate: $(if ($r) { [math]::Round([double]$r[0].value[1], 4) } else { 0 }) req/s"
 ```
 
 Esperado: > 0.1 req/s.
@@ -235,8 +232,7 @@ Esperado: HTTP 400 (credenciales incorrectas, pero el servicio responde — no e
 
 ```powershell
 # Confirmar error rate volvió a 0
-$r = (Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data.result
-"Error rate: $(if ($r) { [math]::Round([double]$r[0].value[1], 4) } else { 0 })"
+$r = (Invoke-RestMethod "http://127.0.0.1:9090/api/v1/query?query=sum(rate(pharmago_http_errors_total[1m]))").data.result; "Error rate: $(if ($r) { [math]::Round([double]$r[0].value[1], 4) } else { 0 })"
 ```
 
 Esperado: ~0.
@@ -265,8 +261,7 @@ Señalar que el CPU está en baseline (< 15%) en ambos pods del api-gateway.
 ### 4.2 Verificar baseline antes de arrancar
 
 ```powershell
-$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
-if ($r) { "CPU avg: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result; if ($r) { "CPU avg: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
 ```
 
 Esperado: < 15%. Si está en 50%, hay procesos huérfanos — reiniciar los pods:
@@ -293,9 +288,7 @@ bash trigger-cpu-p95-alert.sh
 Mientras espera, mostrar en Grafana el panel **"CPU avg api-gateway"** subiendo y cruzando la línea roja (40%).
 
 ```powershell
-$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
-$v = if ($r) { [double]$r[0].value[1] } else { 0 }
-"CPU avg: $([math]::Round($v,1)) % -> $(if ($v -gt 40) { 'FIRING' } else { 'esperando' })"
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result; $v = if ($r) { [double]$r[0].value[1] } else { 0 }; "CPU avg: $([math]::Round($v,1)) % -> $(if ($v -gt 40) { 'FIRING' } else { 'esperando' })"
 ```
 
 En Grafana → Alerting → `[PharmaGo] High CPU p95` → **Firing**.
@@ -308,8 +301,7 @@ En Grafana → Alerting → `[PharmaGo] High CPU p95` → **Firing**.
 # Ver CPU por pod
 kubectl top pods -n pharmago --sort-by=cpu 2>$null
 # Si no funciona, usar Prometheus directamente:
-$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100').data.result
-$r | ForEach-Object { "$($_.metric.pod) -> $([math]::Round([double]$_.value[1], 1)) %" }
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100').data.result; $r | ForEach-Object { "$($_.metric.pod) -> $([math]::Round([double]$_.value[1], 1)) %" }
 ```
 
 **Qué decir:** "Ambos pods del api-gateway están al 50% de CPU — en el límite de su resource limit de 500m. El promedio supera el umbral del 40%."
@@ -334,8 +326,7 @@ Esperado: 3 pods, el nuevo en `0/1 → 1/1 Running`.
 ### 4.7 Confirmar recuperación de la alerta
 
 ```powershell
-$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
-if ($r) { "CPU avg: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result; if ($r) { "CPU avg: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
 ```
 
 Esperado: ~33-35% (bajo el umbral de 40%).
@@ -351,8 +342,7 @@ En Grafana → alerta pasa a **Normal**.
 Cuando el script de chaos termina (300s), los busy-loops se matan automáticamente:
 
 ```powershell
-$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result
-if ($r) { "CPU avg post-chaos: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
+$r = (Invoke-RestMethod 'http://127.0.0.1:9090/api/v1/query?query=avg(sum+by(pod)(rate(container_cpu_usage_seconds_total{namespace="pharmago",pod=~"pharmago-api-gateway.*"}[1m]))*100)').data.result; if ($r) { "CPU avg post-chaos: $([math]::Round([double]$r[0].value[1], 1)) %" } else { "sin datos" }
 ```
 
 Esperado: < 5% en los 3 pods.
